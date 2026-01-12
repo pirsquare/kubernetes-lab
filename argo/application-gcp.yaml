@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fastapi-app-gcp
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/pirsquare/kubernetes-lab
+    targetRevision: HEAD
+    path: k8s/overlays/gcp
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fastapi-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  notifications:
+    - recipients:
+      - slack: #deployments
+      selector:
+        - onceSynced
+  revisionHistoryLimit: 10

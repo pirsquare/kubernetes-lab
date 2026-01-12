@@ -1,0 +1,136 @@
+name: Deploy to Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'k8s/**'
+      - 'argo/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'aws'
+        type: choice
+        options:
+          - aws
+          - gcp
+          - azure
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set deployment environment
+      id: env
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          ENV="${{ github.event.inputs.environment }}"
+        else
+          ENV="aws"
+        fi
+        echo "environment=$ENV" >> $GITHUB_OUTPUT
+        echo "Deploying to $ENV"
+
+    - name: Configure AWS credentials
+      if: steps.env.outputs.environment == 'aws'
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: us-east-1
+
+    - name: Update kubeconfig for AWS
+      if: steps.env.outputs.environment == 'aws'
+      run: |
+        aws eks update-kubeconfig --name fastapi-cluster --region us-east-1
+
+    - name: Set up gcloud
+      if: steps.env.outputs.environment == 'gcp'
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Get GKE credentials
+      if: steps.env.outputs.environment == 'gcp'
+      run: |
+        gcloud container clusters get-credentials fastapi-cluster --zone us-central1-a --project ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Azure login
+      if: steps.env.outputs.environment == 'azure'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Get AKS credentials
+      if: steps.env.outputs.environment == 'azure'
+      run: |
+        az aks get-credentials --resource-group fastapi-rg --name fastapi-cluster
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v3
+
+    - name: Install kustomize
+      uses: imranismail/setup-kustomize@v2
+
+    - name: Deploy with Kustomize
+      run: |
+        kustomize build k8s/overlays/${{ steps.env.outputs.environment }} | kubectl apply -f -
+
+    - name: Wait for deployment
+      run: |
+        kubectl rollout status deployment/fastapi-app -n fastapi-app --timeout=5m
+
+    - name: Get service info
+      run: |
+        kubectl get svc -n fastapi-app
+        kubectl get pods -n fastapi-app
+
+  argocd-sync:
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install ArgoCD CLI
+      run: |
+        curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+        chmod +x /usr/local/bin/argocd
+
+    - name: Sync ArgoCD applications
+      env:
+        ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+        ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+      run: |
+        argocd app sync fastapi-app-aws --force
+        argocd app wait fastapi-app-aws --sync
+        argocd app sync fastapi-app-gcp --force
+        argocd app wait fastapi-app-gcp --sync
+        argocd app sync fastapi-app-azure --force
+        argocd app wait fastapi-app-azure --sync
+
+    - name: Check health
+      env:
+        ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+        ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+      run: |
+        argocd app get fastapi-app-aws
+        argocd app get fastapi-app-gcp
+        argocd app get fastapi-app-azure

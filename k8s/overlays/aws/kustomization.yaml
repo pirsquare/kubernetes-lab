@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fastapi-app
+
+bases:
+- ../../base
+
+patchesStrategicMerge:
+- deployment-patch.yaml
+
+commonLabels:
+  cloud-provider: aws
+  region: ap-southeast-1
+
+configMapGenerator:
+- name: fastapi-config
+  behavior: merge
+  literals:
+  - CLOUD_PROVIDER=aws

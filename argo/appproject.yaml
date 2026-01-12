@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fastapi-project
+  namespace: argocd
+spec:
+  description: FastAPI K8s Application Project
+  sourceRepos:
+  - 'https://github.com/pirsquare/kubernetes-lab'
+  destinations:
+  - namespace: 'fastapi-app'
+    server: '*'
+  - namespace: 'argocd'
+    server: 'https://kubernetes.default.svc'
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
