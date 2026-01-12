@@ -1,0 +1,33 @@
+# Azure Configuration
+azure_subscription_id = "your-subscription-id"
+azure_region          = "southeastasia"
+
+# Project Configuration
+project_name = "kubernetes-lab"
+environment  = "production"
+
+# Network Configuration
+vnet_cidr          = "10.0.0.0/16"
+subnet_cidr        = "10.0.1.0/24"
+service_cidr       = "10.1.0.0/16"
+dns_service_ip     = "10.1.0.10"
+docker_bridge_cidr = "172.17.0.1/16"
+
+# Kubernetes Configuration
+kubernetes_version = "1.28"
+
+# Node Pool Configuration
+node_desired_count = 3
+node_min_count     = 3
+node_max_count     = 10
+node_vm_size       = "Standard_B2s"
+node_disk_size_gb  = 50
+
+# NGINX Configuration
+nginx_namespace     = "ingress-nginx"
+nginx_version       = "4.9.0"
+nginx_replica_count = 3
+
+# Cert-Manager Configuration
+cert_manager_version = "v1.13.0"
+acme_email          = "admin@pirsquare.com"

@@ -1,120 +1,164 @@
 # FastAPI Kubernetes Lab
 
-A production-ready Kubernetes deployment setup for a FastAPI Python application with multi-cloud support (AWS EKS, Google GKE, Azure AKS) targeting Singapore region for optimal performance. Uses NGINX Ingress controller, Argo CD for GitOps, and automated CI/CD via GitHub Actions.
+Production-ready Kubernetes deployment for a FastAPI application with multi-cloud support (AWS EKS, GCP GKE, Azure AKS) in Singapore. Includes Terraform for infrastructure, NGINX Ingress, Argo CD for GitOps, and CI/CD automation.
 
 ## 🚀 Features
 
-- **FastAPI Application**: Production-ready Python web API with health checks and metrics
-- **AlmaLinux Container**: Secure, enterprise-ready Linux base image
-- **Multi-Cloud Deployment**: Kustomize overlays for AWS (ap-southeast-1), GCP (asia-southeast1), Azure (southeastasia)
-- **Singapore-Optimized**: All regions configured for fastest latency from Singapore
-- **NGINX Ingress**: Standard Kubernetes ingress controller with automatic SSL via cert-manager
-- **GitOps with Argo CD**: Automated deployment synchronization from Git
-- **CI/CD Pipeline**: GitHub Actions workflows for build, test, deploy, and security
-- **Kubernetes Best Practices**:
-  - Resource requests and limits
-  - Health checks (liveness and readiness probes)
-  - Horizontal Pod Autoscaling (HPA)
-  - Pod Disruption Budgets (PDB)
-  - Network Policies
-  - Non-root user execution
-- **Security**: Container vulnerability scanning, dependency checks
-- **Clean & Maintainable**: No unnecessary files, focused tooling
+- **FastAPI Application** - Production-ready API with metrics and health checks
+- **Infrastructure as Code** - Terraform for AWS/GCP/Azure provisioning
+- **Multi-Cloud** - EKS, GKE, AKS all in Singapore region
+- **NGINX Ingress** - Auto-deployed with Let's Encrypt SSL/TLS
+- **GitOps with Argo CD** - Automated deployment from Git
+- **CI/CD Pipeline** - GitHub Actions for build, test, deploy
+- **AlmaLinux Container** - Secure enterprise Linux base image
+- **Kubernetes Best Practices** - HPA, PDB, network policies, resource limits
 
+## 📋 Prerequisites
 
-## 🛠️ Prerequisites
+- Terraform >= 1.0
+- Cloud provider CLI: AWS CLI, gcloud, or az
+- kubectl
+- Git
+- Cloud accounts (AWS/GCP/Azure)
 
-- **Local Development**:
-  - Python 3.11+
-  - Docker & Docker Buildx
-  - kubectl
-  - kustomize
-  - Git
+**For local development**: Python 3.11, Docker, kustomize
 
-- **Cloud Infrastructure**:
-  - AWS: EKS cluster with IAM roles
-  - GCP: GKE cluster with service accounts
-  - Azure: AKS cluster with RBAC
+## � Quick Start
 
-- **GitOps**:
-  - Argo CD installed on target clusters
-  - GitHub repository with push access
-  - GitHub Actions enabled
-
-## 🚢 Getting Started
-
-### 1. Clone Repository
+### Terraform Provisioning (Recommended)
 
 ```bash
-# Clone the pirsquare kubernetes-lab repository
+# Clone repository
 git clone https://github.com/pirsquare/kubernetes-lab.git
-cd kubernetes-lab
+cd kubernetes-lab/terraform/{aws,gcp,azure}
+
+# Configure
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values
+
+# Deploy cluster + NGINX + cert-manager
+terraform init
+terraform plan
+terraform apply
+
+# Get kubeconfig (provider-specific)
+# AWS: aws eks update-kubeconfig --region ap-southeast-1 --name kubernetes-lab-cluster
+# GCP: gcloud container clusters get-credentials kubernetes-lab-cluster --zone asia-southeast1
+# Azure: az aks get-credentials --resource-group kubernetes-lab-rg --name kubernetes-lab-cluster
+
+# Verify
+kubectl get nodes
+kubectl get pods -n ingress-nginx
 ```
 
-### 2. Local Development
+For detailed instructions, see [TERRAFORM_QUICKSTART.md](TERRAFORM_QUICKSTART.md)
+
+### Local Development
 
 ```bash
-# Create Python virtual environment
+# Setup Python environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate
 pip install -r app/requirements.txt
-pip install pytest pytest-cov httpx
 
-# Run the application locally
+# Run locally
 python app/main.py
-# Visit http://localhost:8000/docs for API documentation
+# Visit http://localhost:8000/docs
 ```
 
-### 3. Build Docker Image
+### Build Docker Image
 
 ```bash
-# Build using Docker
 docker build -t fastapi-app:latest .
-
-# Or with BuildKit for better caching
-docker buildx build --load -t fastapi-app:latest .
-
-# Run the container
 docker run -p 8000:8000 fastapi-app:latest
 ```
 
-### 4. Deploy to Kubernetes
+### Manual Kubernetes Deployment
 
 ```bash
-# Deploy to AWS EKS (Singapore - ap-southeast-1)
+# Deploy application only (requires existing cluster + NGINX)
 kustomize build k8s/overlays/aws | kubectl apply -f -
-
-# Or deploy to GCP GKE (Singapore - asia-southeast1)
-kustomize build k8s/overlays/gcp | kubectl apply -f -
-
-# Or deploy to Azure AKS (Singapore - southeastasia)
-kustomize build k8s/overlays/azure | kubectl apply -f -
-
-# Verify deployment
-kubectl get pods -n fastapi-app
-kubectl get svc -n fastapi-app
-kubectl get ingress -n fastapi-app
+# or: k8s/overlays/gcp or k8s/overlays/azure
 ```
+
+## 📚 Documentation
+
+- **[TERRAFORM_QUICKSTART.md](TERRAFORM_QUICKSTART.md)** - Terraform setup guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Manual deployment (existing clusters)
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Architecture overview
+- **[UPDATES.md](UPDATES.md)** - Recent changes
 
 ## 🔄 GitOps with Argo CD
 
-### Installation & Configuration
-
 ```bash
-# Install Argo CD namespace
-kubectl create namespace argocd
-
 # Install Argo CD
+kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# Port-forward to access UI
+# Port forward for UI access
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 
-# Get initial admin password
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+# Deploy application
+kubectl apply -f argo/application-aws.yaml
+# or: argo/application-gcp.yaml or argo/application-azure.yaml
 ```
+
+## 📁 Project Structure
+
+```
+kubernetes-lab/
+├── terraform/           # Infrastructure as Code
+│   ├── aws/            # EKS cluster (ap-southeast-1)
+│   ├── gcp/            # GKE cluster (asia-southeast1)
+│   ├── azure/          # AKS cluster (southeastasia)
+│   └── modules/        # Reusable NGINX module
+│
+├── app/                # FastAPI application
+│   ├── main.py
+│   ├── requirements.txt
+│   └── tests/
+│
+├── k8s/                # Kubernetes manifests
+│   ├── base/           # Cloud-agnostic base configs
+│   └── overlays/       # Cloud-specific overlays
+│
+├── argo/               # Argo CD applications
+├── .github/workflows/  # CI/CD pipelines
+├── Dockerfile          # AlmaLinux-based image
+└── bootstrap.sh        # Optional setup script
+```
+
+## 🔐 Security
+
+- AlmaLinux 9 container base (enterprise-grade)
+- Network policies restrict traffic
+- RBAC and IAM properly configured
+- Let's Encrypt SSL/TLS automation
+- Non-root container execution
+- Container vulnerability scanning (Trivy)
+- Dependency checks (Safety)
+
+## 🎯 Regions (Singapore)
+
+- **AWS**: ap-southeast-1
+- **GCP**: asia-southeast1  
+- **Azure**: southeastasia
+
+## 📈 Next Steps
+
+1. Choose your cloud provider
+2. Follow [TERRAFORM_QUICKSTART.md](TERRAFORM_QUICKSTART.md) to deploy
+3. Configure DNS pointing to NGINX LoadBalancer IP
+4. Deploy application via Argo CD or Kustomize
+5. Monitor via cloud provider dashboards
+
+## 📞 Support
+
+- [Terraform Docs](https://www.terraform.io/docs)
+- [NGINX Ingress Docs](https://kubernetes.github.io/ingress-nginx/)
+- [Cert-Manager Docs](https://cert-manager.io/)
+- [Argo CD Docs](https://argo-cd.readthedocs.io/)
+
 
 ### Deploy Applications
 
@@ -300,24 +344,4 @@ curl http://localhost:8000/health
 curl http://localhost:8000/api/v1/info
 ```
 
-## 🤝 Contributing
-
-1. Create a feature branch
-2. Make changes and commit
-3. Push to GitHub
-4. Create a pull request
-5. Workflows will run automatically
-6. Merge after approval
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 👨‍💻 Author
-
-Created for multi-cloud Kubernetes deployment lab
-
----
-
-**Questions?** Check [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
 

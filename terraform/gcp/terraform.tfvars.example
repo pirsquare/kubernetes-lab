@@ -1,0 +1,29 @@
+# GCP Configuration
+gcp_project_id = "your-gcp-project-id"
+gcp_region     = "asia-southeast1"
+
+# Project Configuration
+project_name = "kubernetes-lab"
+environment  = "production"
+
+# Network Configuration
+subnet_cidr    = "10.0.0.0/20"
+pods_cidr      = "10.4.0.0/14"
+services_cidr  = "10.0.16.0/20"
+
+# Node Pool Configuration
+node_initial_count = 3
+node_min_count     = 3
+node_max_count     = 10
+node_machine_type  = "e2-medium"
+node_disk_size_gb  = 50
+node_preemptible   = false
+
+# NGINX Configuration
+nginx_namespace     = "ingress-nginx"
+nginx_version       = "4.9.0"
+nginx_replica_count = 3
+
+# Cert-Manager Configuration
+cert_manager_version = "v1.13.0"
+acme_email          = "admin@pirsquare.com"
