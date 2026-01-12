@@ -1,2 +1,50 @@
-# Auto detect text files and perform LF normalization
+# Text files
+*.md text eol=lf
+*.txt text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.toml text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+*.properties text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mov binary
+*.mp4 binary
+*.mp3 binary
+*.gz binary
+*.zip binary
+*.7z binary
+*.ttf binary
+*.otf binary
+*.db binary
+*.sqlite binary
+
+# Scripts - should be executable
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Kubernetes and manifests
+*.k8s.yaml text eol=lf
+*.k8s.yml text eol=lf
+kustomization.yaml text eol=lf
+
+# Auto normalize line endings for all text files
 * text=auto
+
+# Attribute for merge conflict resolution
+*.py merge=union
